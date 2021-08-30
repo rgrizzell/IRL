@@ -1,6 +1,6 @@
 import flask
 import json
-import controller
+import trinket
 
 # Flask setup
 app = flask.Flask(__name__)

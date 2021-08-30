@@ -5,8 +5,10 @@ import neopixel
 import supervisor
 import time
 
+
 ######################### COMMMANDS ##############################
 
+# noinspection PyMethodMayBeStatic
 class Commands(object):
 
     def __init__(self):
@@ -22,34 +24,42 @@ class Commands(object):
                 cmd = args.pop(0)
                 # Lookup the received command.
                 func = getattr(self, cmd, self.not_found)
-                # Execute the command and pass the rest of the arguments
-                func(args)
+                # Execute the command and pass the rest as arguments
+                func(*args)
 
         return None
 
-    def help(self, args):
+    def __response(self, response):
+        """
+        TODO: Reverse engineer the AT Command protocol
+
+        :param response:
+        :return:
+        """
+        print(response)
+
+    def help(self):
         cmd_list = [func for func in dir(Commands) if callable(getattr(Commands, func)) and not func.startswith("__")]
         print("List of Commands")
         print(", ".join(cmd_list))
+        return True
 
-    def a_ok(self, args):
-        print("Action: Green LED")
+    def alert(self, color):
+        print("OK: Alert color {}".format(color))
+        return True
 
-    def a_warn(self, args):
-        print("Action: Yellow LED")
+    def br_set(self, value):
+        set_brightness(float(value))
+        print("OK: Set brightness: {}%".format(value))
+        return True
 
-    def a_crit(self, args):
-        print("Action: Red LED")
+    def br_up(self, value):
+        print("OK: Increase brightness: +{}%".format(value))
+        return True
 
-    def br_set(self, args):
-        print("Action: Set brightness: {}%".format(args[0]))
-
-    def br_up(self, args):
-        print("Action: Increase brightness: +{}%".format(args[0]))
-
-    def br_down(self, args):
-        print("Action: Decrease brightness: -{}%".format(args[0]))
-
+    def br_down(self, value):
+        print("OK: Decrease brightness: -{}%".format(value))
+        return True
 
 
 ######################### HELPERS ##############################
@@ -68,6 +78,21 @@ def wheel(pos):
     else:
         pos -= 170
         return (int(pos*3), 0, int(255 - pos*3))
+
+
+def set_brightness(value):
+    """
+    Takes a percentage value and sets the brightness
+    :param value:
+    :return bool:
+    """
+    if 0 <= value <= 100:
+        b = value/100
+        neopixels.brightness = b
+        dot.brightness = b
+        return True
+    else:
+        return False
 
 
 ######################### HARDWARE SETUP ##############################

@@ -1,0 +1,4 @@
+adafruit_dotstar==2.1.0
+adafruit_pixelbuf==1.1.0
+neopixel==6.2.1
+adafruit_bus_device==5.0.6
