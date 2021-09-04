@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "925a6c3acff50ad662ffd5a41485cf9a5beb2ceba6ec0646681097c32c8c5838"
+            "sha256": "812f05e816ea14300a59033bbd231878b81a86ab525a8b223616dbe99dc48e3b"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -194,5 +194,13 @@
             "version": "==2.0.1"
         }
     },
-    "develop": {}
+    "develop": {
+        "circuitpython-stubs": {
+            "hashes": [
+                "sha256:487c8eb84ef5c30cfdfccab500692f740adac05e8a491365903a33871c0d462c"
+            ],
+            "index": "pypi",
+            "version": "==7.0.0rc1"
+        }
+    }
 }

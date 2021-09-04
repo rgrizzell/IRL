@@ -4,6 +4,7 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
+circuitpython-stubs = "==7.0.0rc1"
 
 [packages]
 flask = "*"

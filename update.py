@@ -8,13 +8,14 @@ import pathlib
 def copy_code(source=None, destination=None):
     """
     Copies files to the CircuitPython device.
+    TODO: Minify code.py before transferring
 
     :param source:
     :param destination:
     :return boolean:
     """
     if not source:
-        source = os.path.dirname(os.path.realpath(__file__)) + '/../circuitpython/code.py'
+        source = os.path.dirname(os.path.realpath(__file__)) + '/circuitpython/code.py'
     if not destination:
         destination = circup.find_device()
         print(f"Found device: {destination}")

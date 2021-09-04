@@ -1,4 +1,5 @@
 import board
+from collections import namedtuple
 from digitalio import DigitalInOut, Direction, Pull
 import adafruit_dotstar as dotstar
 import neopixel
@@ -7,12 +8,14 @@ import time
 
 
 ######################### COMMMANDS ##############################
+Event = namedtuple("Event", ("status", "output"))
 
 # noinspection PyMethodMayBeStatic
 class Commands(object):
 
     def __init__(self):
-        self.not_found = lambda x: print("Invalid command. See 'help' for usage.")
+        self.__not_found = lambda x: print("Invalid command. See 'help' for usage.")
+        self.__preamble = ""
 
     def __listen(self):
         # Process the serial interface for input.
@@ -23,51 +26,113 @@ class Commands(object):
                 # Get the base command from the list of arguments
                 cmd = args.pop(0)
                 # Lookup the received command.
-                func = getattr(self, cmd, self.not_found)
+                func = getattr(self, cmd, self.__not_found)
                 # Execute the command and pass the rest as arguments
-                func(*args)
+                try:
+                    self.__response(func(*args))
+                except TypeError:
+                    self.__response(Event(False, "Insufficient arguments"))
+                except Exception as err:
+                    self.__response(Event(False, err))
 
         return None
 
-    def __response(self, response):
+    def __response(self, event: Event):
         """
-        TODO: Reverse engineer the AT Command protocol
+        Handles the response message
 
-        :param response:
+        :param event:
         :return:
         """
-        print(response)
+        if event.status:
+            print("{}OK: {}".format(self.__preamble, event.output))
+        else:
+            print("{}ERR: {}".format(self.__preamble, event.output))
 
     def help(self):
         cmd_list = [func for func in dir(Commands) if callable(getattr(Commands, func)) and not func.startswith("__")]
-        print("List of Commands")
-        print(", ".join(cmd_list))
-        return True
+        return Event(True, "List of Commands\n{}".format(", ".join(cmd_list)))
 
     def alert(self, color):
-        print("OK: Alert color {}".format(color))
-        return True
+
+        return Event(True, "Alert color {}".format(color))
 
     def br_set(self, value):
-        set_brightness(float(value))
-        print("OK: Set brightness: {}%".format(value))
-        return True
+        value = int(value) / 100
+        new = set_brightness(value)
+
+        return Event(True, "Set brightness: {:.0%}".format(new))
 
     def br_up(self, value):
-        print("OK: Increase brightness: +{}%".format(value))
-        return True
+        value = float(value) / 100
+        new = set_brightness(brightness + value)
+
+        return Event(True, "Increase brightness: +{:.0%} [{:.0%}]".format(value, new))
 
     def br_down(self, value):
-        print("OK: Decrease brightness: -{}%".format(value))
-        return True
+        value = int(value) / 100
+        new = set_brightness(brightness - value)
+
+        return Event(True, "Decrease brightness: -{:.0%} [{:.0%}]".format(value, new))
+
+    def off(self):
+        set_brightness(0)
+        return Event(True, "Set brightness: 0%")
 
 
 ######################### HELPERS ##############################
+def clip(value, lower, upper):
+    return lower if value < lower else upper if value > upper else value
 
-# Helper to give us a nice color swirl
+
+def set_brightness(value):
+    """
+    Takes a percentage value and sets the brightness.
+
+    :param value:
+    :return bool:
+    """
+    global brightness
+    new_brightness = clip(value, 0, MAX_BRIGHTNESS)
+
+    # Set the device brightness
+    brightness = new_brightness
+    neopixels.brightness = new_brightness
+    dot.brightness = new_brightness
+
+    return new_brightness
+
+
+# LED Animations
+def color_chase(color, wait):
+    for i in range(NUMPIXELS):
+        neopixels[i] = color
+        time.sleep(wait)
+        neopixels.show()
+    time.sleep(0.5)
+
+
+def pulse(color, wait):
+    # (255, 0, 0)
+    return
+
+
+def rainbow_cycle(wait):
+    for j in range(255):
+        for i in range(NUMPIXELS):
+            rc_index = (i * 256 // NUMPIXELS) + j
+            neopixels[i] = wheel(rc_index & 255)
+        neopixels.show()
+        time.sleep(wait)
+
+
 def wheel(pos):
-    # Input a value 0 to 255 to get a color value.
-    # The colours are a transition r - g - b - back to r.
+    """
+    Helper to give us a nice color swirl. The colours are a transition r - g - b - back to r.
+
+    :param pos: Input a value 0 to 255 to get a color value.
+    :return tuple:
+    """
     if (pos < 0) or (pos > 255):
         return (0, 0, 0)
     if pos < 85:
@@ -80,27 +145,24 @@ def wheel(pos):
         return (int(pos*3), 0, int(255 - pos*3))
 
 
-def set_brightness(value):
-    """
-    Takes a percentage value and sets the brightness
-    :param value:
-    :return bool:
-    """
-    if 0 <= value <= 100:
-        b = value/100
-        neopixels.brightness = b
-        dot.brightness = b
-        return True
-    else:
-        return False
+RED = (255, 0, 0)
+YELLOW = (255, 150, 0)
+GREEN = (0, 255, 0)
+CYAN = (0, 255, 255)
+BLUE = (0, 0, 255)
+PURPLE = (180, 0, 255)
 
 
 ######################### HARDWARE SETUP ##############################
-
-# One pixel connected internally!
-dot = dotstar.DotStar(board.APA102_SCK, board.APA102_MOSI, 1, brightness=0.1)
+# LEDs
+brightness = 0.1
+MAX_BRIGHTNESS = 0.5  # SAFETY: Prevent LEDs from burning out.
+# One pixel connected internally
+dot = dotstar.DotStar(board.APA102_SCK, board.APA102_MOSI, 1, brightness=brightness)
 dot[0] = (0, 0, 0)
-
+# NeoPixel strip (of 30 LEDs) connected on D4
+NUMPIXELS = 30
+neopixels = neopixel.NeoPixel(board.D4, NUMPIXELS, brightness=brightness, auto_write=False)
 # Built in red LED
 led = DigitalInOut(board.D13)
 led.direction = Direction.OUTPUT
@@ -112,10 +174,6 @@ mode_1.pull = Pull.UP
 mode_2 = DigitalInOut(board.D2)
 mode_2.direction = Direction.INPUT
 mode_2.pull = Pull.UP
-
-# NeoPixel strip (of 30 LEDs) connected on D4
-NUMPIXELS = 30
-neopixels = neopixel.NeoPixel(board.D4, NUMPIXELS, brightness=0.1, auto_write=False)
 
 ######################### MAIN LOOP ##############################
 
@@ -130,10 +188,10 @@ while True:
     # Listen for commands on the serial interface
     serial.__listen()
 
-    if mode_1.value:
+    if not mode_1.value:
         dot[0] = (255, 255, 255)
 
-    if not mode_2.value:
+    if mode_2.value:
         # spin internal LED around! autoshow is on
         dot[0] = wheel(i & 255)
 
