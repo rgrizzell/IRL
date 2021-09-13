@@ -32,7 +32,6 @@ def copy_code(source=None, destination=None):
 def update_libraries(destination=None):
     """
     Trigger circup and update the device.
-    TODO: Get this to work: `ModuleNotFoundError: No module named 'board'`
 
     :param destination:
     :return:

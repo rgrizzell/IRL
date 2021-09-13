@@ -6,9 +6,9 @@ import neopixel
 import supervisor
 import time
 
-
 ######################### COMMMANDS ##############################
 Event = namedtuple("Event", ("status", "output"))
+
 
 # noinspection PyMethodMayBeStatic
 class Commands(object):
@@ -54,7 +54,7 @@ class Commands(object):
         return Event(True, "List of Commands\n{}".format(", ".join(cmd_list)))
 
     def alert(self, color):
-
+        pulse(RED, 3, 0.1)
         return Event(True, "Alert color {}".format(color))
 
     def br_set(self, value):
@@ -112,9 +112,38 @@ def color_chase(color, wait):
     time.sleep(0.5)
 
 
-def pulse(color, wait):
-    # (255, 0, 0)
-    return
+def pulse(color, pulses, speed=0.5, step=10):
+    """
+    TODO: You left off here. It works, but slow af. Might be brightness function.
+    TODO: Try setting the RGBW values
+    :param color:
+    :param pulses:
+    :param speed:
+    :param step:
+    :return:
+    """
+    for i in range(NUMPIXELS):
+        neopixels[i] = color
+    neopixels.show()
+
+    b = int(brightness * 100)
+    for _ in range(pulses):
+        for x in range(b, int(MAX_BRIGHTNESS * 100), step):
+            print(x)
+            set_brightness(x)
+            time.sleep(speed)
+        for x in range(int(MAX_BRIGHTNESS * 100), 0, (step * -1)):
+            print(x)
+            set_brightness(x)
+            time.sleep(speed)
+        for x in range(0, int(MAX_BRIGHTNESS * 100), step):
+            print(x)
+            set_brightness(x)
+            time.sleep(speed)
+    else:
+        print(x)
+        set_brightness(b)
+
 
 
 def rainbow_cycle(wait):
